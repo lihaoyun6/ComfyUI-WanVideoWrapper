@@ -36,6 +36,7 @@ python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-WanVide
 1) Build and install Block-Sparse-Attention:
 
 ```bash
+pip install packaging
 #Install ninja for faster compilation
 pip install ninja
 #If your system memory is less than 96GB

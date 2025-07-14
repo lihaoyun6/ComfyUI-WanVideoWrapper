@@ -35,6 +35,7 @@ python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-WanVide
 1) 编译并安装 Block-Sparse-Attention:
 
 ```bash
+pip install packaging
 #安装 ninja 可以有效提高 CUDA 编译效率
 pip install ninja
 #如果你的系统内存不足 96GB, 请限制最大编译线程数为 5
