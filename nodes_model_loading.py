@@ -472,6 +472,8 @@ class WanVideoModelLoader:
                     "flash_attn_3",
                     "sageattn",
                     "flex_attention",
+                    "draft_attn+fa_2",
+                    "draft_attn+fa_3",
                     #"spargeattn", needs tuning
                     #"spargeattn_tune",
                     ], {"default": "sdpa"}),

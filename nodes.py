@@ -16,6 +16,7 @@ from .wanvideo.utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 from .wanvideo.utils.basic_flowmatch import FlowMatchScheduler
 from diffusers.schedulers import FlowMatchEulerDiscreteScheduler, DEISMultistepScheduler
 from .wanvideo.utils.scheduling_flow_match_lcm import FlowMatchLCMScheduler
+from .wanvideo.utils.fm_solvers_euler_d import FlowMatchEulerDynamicScheduler
 
 from .multitalk.multitalk import timestep_transform, add_noise
 
@@ -1769,7 +1770,7 @@ class WanVideoSampler:
                 "shift": ("FLOAT", {"default": 5.0, "min": 0.0, "max": 1000.0, "step": 0.01}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "force_offload": ("BOOLEAN", {"default": True, "tooltip": "Moves the model to the offload device after sampling"}),
-                "scheduler": (["unipc", "unipc/beta", "dpm++", "dpm++/beta","dpm++_sde", "dpm++_sde/beta", "euler", "euler/beta", "euler/accvideo", "deis", "lcm", "lcm/beta", "flowmatch_causvid", "flowmatch_distill", "multitalk"],
+                "scheduler": (["unipc", "unipc/beta", "dpm++", "dpm++/beta","dpm++_sde", "dpm++_sde/beta", "euler", "euler/d", "euler/beta", "euler/accvideo", "deis", "lcm", "lcm/beta", "flowmatch_causvid", "flowmatch_distill", "multitalk"],
                     {
                         "default": 'unipc'
                     }),
@@ -1848,7 +1849,12 @@ class WanVideoSampler:
                     sample_scheduler.sigmas = sigmas.to(device)
                     sample_scheduler.timesteps = (sample_scheduler.sigmas[:-1] * 1000).to(torch.int64).to(device)
                     sample_scheduler.num_inference_steps = len(sample_scheduler.timesteps)
-
+            elif "euler/d" in scheduler:
+                sample_scheduler = FlowMatchEulerDynamicScheduler(shift=shift)
+                if flowedit_args: #seems to work better
+                    timesteps, _ = retrieve_timesteps(sample_scheduler, device=device, sigmas=get_sampling_sigmas(steps, shift))
+                else:
+                    sample_scheduler.set_timesteps(steps, device=device, sigmas=sigmas.tolist() if sigmas is not None else None)
             elif scheduler in ['euler/beta', 'euler']:
                 sample_scheduler = FlowMatchEulerDiscreteScheduler(shift=shift, use_beta_sigmas=(scheduler == 'euler/beta'))
                 if flowedit_args: #seems to work better
@@ -3672,6 +3678,86 @@ class WanVideoEncode:
  
         return ({"samples": latents, "mask": latent_mask},)
 
+class FindDraftAttentionBucket:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "width": ("INT", {
+                    "default": 768,
+                    "min": 64,
+                    "max": 8096,
+                    "step": 8
+                }),
+                "height": ("INT", {
+                    "default": 480,
+                    "min": 64,
+                    "max": 8096,
+                    "step": 8
+                }),
+                "frames": ("INT", {
+                    "default": 61,
+                    "min": 1,
+                    "max": 10000,
+                    "step": 4
+                }),
+            }
+        }
+    
+    RETURN_TYPES = ("INT", "INT", "INT",)
+    RETURN_NAMES = ("width", "height", "frames")
+    FUNCTION = "find_closest_bucket"
+    CATEGORY = "WanVideoWrapper"
+    
+    @classmethod
+    def IS_CHANGED(cls, *args, **kwargs):
+        return True
+    
+    def find_closest_bucket(self, width, height, frames):
+        def compute_q_len(w, h, f):
+            return w * h * math.ceil(f / 4) / 256
+        
+        def is_valid(w, h, f):
+            if w % 8 != 0 or h % 8 != 0 or (f - 1) % 4 != 0:
+                return False
+            q_len = compute_q_len(w, h, f)
+            
+            if not q_len.is_integer():
+                return False
+            q_len = int(q_len)
+            
+            if q_len == 32256:
+                return q_len % 640 == 0 and q_len % (32 * 48) == 0
+            return q_len % 640 == 0 and q_len % (48 * 80) == 0
+        
+        if is_valid(width, height, frames):
+            return width, height, frames
+        
+        best_diff = float('inf')
+        best_combo = None
+        
+        for dw in range(-64, 65, 8):
+            for dh in range(-64, 65, 8):
+                new_w = width + dw
+                new_h = height + dh
+                if new_w < 8 or new_h < 8:
+                    continue
+                for df in range(-16, 17):
+                    new_f = frames + df
+                    if new_f < 1 or (new_f - 1) % 4 != 0:
+                        continue
+                    if is_valid(new_w, new_h, new_f):
+                        diff = abs(new_w - width) + abs(new_h - height) + abs(new_f - frames)
+                        if diff < best_diff:
+                            best_diff = diff
+                            best_combo = (new_w, new_h, new_f)
+                            if diff == 0:
+                                break
+                            
+        if not best_combo:
+            raise RuntimeError("Unable to find the closest bucket within reasonable range!")
+        return (best_combo[0], best_combo[1], best_combo[2],)
+
 NODE_CLASS_MAPPINGS = {
     "WanVideoSampler": WanVideoSampler,
     "WanVideoDecode": WanVideoDecode,
@@ -3708,6 +3794,7 @@ NODE_CLASS_MAPPINGS = {
     "WanVideoApplyNAG": WanVideoApplyNAG,
     "WanVideoMiniMaxRemoverEmbeds": WanVideoMiniMaxRemoverEmbeds,
     "WanVideoFreeInitArgs": WanVideoFreeInitArgs,
+    "FindDraftAttentionBucket ": FindDraftAttentionBucket,
     }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "WanVideoSampler": "WanVideo Sampler",
@@ -3746,4 +3833,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WanVideoApplyNAG": "WanVideo Apply NAG",
     "WanVideoMiniMaxRemoverEmbeds": "WanVideo MiniMax Remover Embeds",
     "WanVideoFreeInitArgs": "WanVideo Free Init Args",
+    "FindDraftAttentionBucket ": "Find Draft-Attention Bucket",
     }

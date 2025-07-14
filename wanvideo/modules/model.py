@@ -274,7 +274,7 @@ class WanSelfAttention(nn.Module):
         v = self.v(x).view(b, s, n, d)
         return q, k, v
 
-    def forward(self, q, k, v, seq_lens, block_mask=None):
+    def forward(self, q, k, v, seq_lens, block_mask=None, idx_block=None, current_timestep=None):
         r"""
         Args:
             x(Tensor): Shape [B, L, num_heads, C / num_heads]
@@ -310,7 +310,9 @@ class WanSelfAttention(nn.Module):
             x = attention(
                 q, k, v,
                 k_lens=seq_lens,
-                attention_mode=self.attention_mode
+                attention_mode=self.attention_mode,
+                idx_block=idx_block,
+                current_timestep=current_timestep
                 )
 
         # output
@@ -319,11 +321,13 @@ class WanSelfAttention(nn.Module):
 
         return x
     
-    def forward_multitalk(self, q, k, v, seq_lens, grid_sizes, ref_target_masks):
+    def forward_multitalk(self, q, k, v, seq_lens, grid_sizes, ref_target_masks, idx_block=None, current_timestep=None):
         x = attention(
             q, k, v,
             k_lens=seq_lens,
-            attention_mode=self.attention_mode
+            attention_mode=self.attention_mode,
+            idx_block=idx_block,
+            current_timestep=current_timestep
             )
 
         # output
@@ -334,7 +338,7 @@ class WanSelfAttention(nn.Module):
 
         return x, x_ref_attn_map
     
-    def forward_split(self, q, k, v, seq_lens, grid_sizes, freqs, seq_chunks=1,current_step=0, video_attention_split_steps = []):
+    def forward_split(self, q, k, v, seq_lens, grid_sizes, freqs, seq_chunks=1,current_step=0, video_attention_split_steps = [], idx_block=None, current_timestep=None):
         r"""
         Args:
             x(Tensor): Shape [B, L, num_heads, C / num_heads]
@@ -396,7 +400,10 @@ class WanSelfAttention(nn.Module):
                 k=k,
                 v=v,
                 k_lens=seq_lens,
-                attention_mode=self.attention_mode)
+                attention_mode=self.attention_mode,
+                idx_block=idx_block,
+                current_timestep=current_timestep
+              )
 
         # output
         x = x.flatten(2)
@@ -651,7 +658,9 @@ class WanAttentionBlock(nn.Module):
         is_uncond=False,
         multitalk_audio_embedding=None,
         ref_target_masks=None,
-        human_num=0
+        human_num=0,
+        idx_block=None,
+        current_timestep=None,
     ):
         r"""
         Args:
@@ -700,12 +709,13 @@ class WanAttentionBlock(nn.Module):
             seq_lens, grid_sizes, freqs, 
             seq_chunks=max(context.shape[0], clip_embed.shape[0] if clip_embed is not None else 0),
             current_step=current_step,
-            video_attention_split_steps=video_attention_split_steps
+            video_attention_split_steps=video_attention_split_steps,
+            idx_block=idx_block, current_timestep=current_timestep
             )
         elif ref_target_masks is not None:
-            y, x_ref_attn_map = self.self_attn.forward_multitalk(q, k, v, seq_lens, grid_sizes, ref_target_masks)
+            y, x_ref_attn_map = self.self_attn.forward_multitalk(q, k, v, seq_lens, grid_sizes, ref_target_masks, idx_block=idx_block, current_timestep=current_timestep)
         else:
-            y = self.self_attn.forward(q, k, v, seq_lens, block_mask=block_mask)
+            y = self.self_attn.forward(q, k, v, seq_lens, block_mask=block_mask, idx_block=idx_block, current_timestep=current_timestep)
 
         # FETA
         if enhance_enabled:
@@ -1725,6 +1735,9 @@ class WanModel(ModelMixin, ConfigMixin):
                     self.controlnet.to(self.offload_device)
 
             for b, block in enumerate(self.blocks):
+                #draft attention
+                kwargs['idx_block'] = b
+                kwargs['current_timestep'] = t
                 #skip layer guidance
                 if self.slg_blocks is not None:
                     if b in self.slg_blocks and is_uncond:
