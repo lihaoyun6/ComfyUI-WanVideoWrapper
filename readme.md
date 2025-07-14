@@ -64,7 +64,7 @@ python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-WanVide
 Unlike other attention schemes, draft-attention does not currently support arbitrary resolution video generation.  
 So you need to use the **`Find Draft-Attention Bucket`** node to convert the video size you set to a size that draft-attention can handle.  
 
-![image](foo-bar)
+![image](https://github.com/user-attachments/assets/f9a75df1-4843-4b34-ac9b-24e5f6f5602d)
 
 ## Thanks
 [ComfyUI-WanVideoWrapper](https://github.com/kijai/ComfyUI-WanVideoWrapper) - kijai  

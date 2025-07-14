@@ -63,7 +63,7 @@ python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-WanVide
 与其他注意力方案不同, draft-attention 目前暂未支持任意分辨率视频生成.  
 所以在搭建工作流时请务必使用插件提供的 **`Find Draft-Attention Bucket`** 节点来将你输入的分辨率转换为 draft-attention 能接受的格式.  
 
-![image](foo-bar)
+![image](https://github.com/user-attachments/assets/f9a75df1-4843-4b34-ac9b-24e5f6f5602d)
 
 ## 鸣谢
 [ComfyUI-WanVideoWrapper](https://github.com/kijai/ComfyUI-WanVideoWrapper) - kijai  
