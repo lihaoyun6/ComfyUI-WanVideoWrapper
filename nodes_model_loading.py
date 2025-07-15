@@ -560,7 +560,7 @@ class WanVideoModelLoader:
         if vace_model is not None:
             if gguf:
                 if not vace_model["path"].endswith(".gguf"):
-                    raise ValueError("With GGUF main model the VACE model must also be a GGUF model")
+                    raise ValueError("With GGUF main model the VACE module must also be a GGUF quantized, if the main model already has VACE included, you can disconnect the VACE module loader")
                 vace_sd = load_gguf_checkpoint(model_path)
             else:
                 vace_sd = load_torch_file(vace_model["path"], device=transformer_load_device, safe_load=True)
@@ -1071,6 +1071,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WanVideoLoraSelect": "WanVideo Lora Select",
     "WanVideoLoraBlockEdit": "WanVideo Lora Block Edit",
     "WanVideoTinyVAELoader": "WanVideo Tiny VAE Loader",
-    "WanVideoVACEModelSelect": "WanVideo VACE Model Select",
+    "WanVideoVACEModelSelect": "WanVideo VACE Module Select",
     "WanVideoLoraSelectMulti": "WanVideo Lora Select Multi"
     }

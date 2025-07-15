@@ -1068,6 +1068,13 @@ class WanModel(ModelMixin, ConfigMixin):
         self.magcache_end_step = -1
         self.magcache_ratios = magcache_ratios
 
+        #init EasyCache variables
+        self.enable_easycache = False
+        self.easycache_thresh = 0.1
+        self.easycache_start_step = 0
+        self.easycache_end_step = -1
+        self.easycache_state = EasyCacheState(cache_device=self.cache_device)
+
         self.slg_blocks = None
         self.slg_start_percent = 0.0
         self.slg_end_percent = 1.0
@@ -1588,6 +1595,7 @@ class WanModel(ModelMixin, ConfigMixin):
             token_ref_target_masks = token_ref_target_masks.to(x.dtype).to(device)
 
         should_calc = True
+        #TeaCache
         if self.enable_teacache and self.teacache_start_step <= current_step <= self.teacache_end_step:
             accumulated_rel_l1_distance = torch.tensor(0.0, dtype=torch.float32, device=device)
             if pred_id is None:
@@ -1629,7 +1637,7 @@ class WanModel(ModelMixin, ConfigMixin):
                 )
                 self.teacache_state.get(pred_id)['skipped_steps'].append(current_step)
 
-        # enable magcache
+        # MagCache
         if self.enable_magcache and self.magcache_start_step <= current_step <= self.magcache_end_step:
             if pred_id is None:
                 pred_id = self.magcache_state.new_prediction(cache_device=self.cache_device)
@@ -1666,8 +1674,38 @@ class WanModel(ModelMixin, ConfigMixin):
                         accumulated_err=0
                     )
 
+        # EasyCache
+        if self.enable_easycache and self.easycache_start_step <= current_step <= self.easycache_end_step:
+            if pred_id is None:
+                pred_id = self.easycache_state.new_prediction(cache_device=self.cache_device)
+                should_calc = True
+            else:
+                state = self.easycache_state.get(pred_id)
+                previous_raw_input = state.get('previous_raw_input')
+                previous_raw_output = state.get('previous_raw_output')
+                cache = state.get('cache')
+                accumulated_error = state.get('accumulated_error')
+
+                if previous_raw_input is not None and previous_raw_output is not None:
+                    raw_input = x.clone()
+                    # Calculate input change
+                    raw_input_change = (raw_input - previous_raw_input.to(raw_input.device)).abs().mean()
+
+                    accumulated_error += raw_input_change
+
+                    # Predict output change
+                    if accumulated_error < self.easycache_thresh:
+                        should_calc = False
+                        x = raw_input + cache.to(x.device)
+                        self.easycache_state.get(pred_id)['skipped_steps'].append(current_step)
+                    else:
+                        should_calc = True
+                        accumulated_error = 0.0
+                else:
+                    should_calc = True
+
         if should_calc:
-            if self.enable_teacache or self.enable_magcache:
+            if self.enable_teacache or self.enable_magcache or self.enable_easycache:
                 original_x = x.to(self.cache_device).clone()
 
             if hasattr(self, "dwpose_embedding") and unianim_data is not None:
@@ -1768,6 +1806,14 @@ class WanModel(ModelMixin, ConfigMixin):
                 self.magcache_state.update(
                     pred_id,
                     residual_cache=(x.to(original_x.device) - original_x)
+                )
+            elif self.enable_easycache and (self.easycache_start_step <= current_step <= self.easycache_end_step) and pred_id is not None:
+                self.easycache_state.update(
+                    pred_id,
+                    previous_raw_input=original_x,
+                    previous_raw_output=x.clone(),
+                    cache=x.to(original_x.device) - original_x,
+                    accumulated_error=0.0
                 )
                 
         if self.ref_conv is not None and fun_ref is not None:
@@ -1872,6 +1918,40 @@ class MagCacheState:
     def get(self, pred_id):
         return self.states.get(pred_id, {})
     
+    def clear_all(self):
+        self.states = {}
+        self._next_pred_id = 0
+
+class EasyCacheState:
+    def __init__(self, cache_device='cpu'):
+        self.cache_device = cache_device
+        self.states = {}
+        self._next_pred_id = 0
+
+    def new_prediction(self, cache_device='cpu'):
+        """Create a new prediction state and return its ID."""
+        self.cache_device = cache_device
+        pred_id = self._next_pred_id
+        self._next_pred_id += 1
+        self.states[pred_id] = {
+            'previous_raw_input': None,
+            'previous_raw_output': None,
+            'cache': None,
+            'accumulated_error': 0.0,
+            'skipped_steps': [],
+        }
+        return pred_id
+
+    def update(self, pred_id, **kwargs):
+        """Update state for a specific prediction."""
+        if pred_id not in self.states:
+            return None
+        for key, value in kwargs.items():
+            self.states[pred_id][key] = value
+
+    def get(self, pred_id):
+        return self.states.get(pred_id, {})
+
     def clear_all(self):
         self.states = {}
         self._next_pred_id = 0

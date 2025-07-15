@@ -138,7 +138,6 @@ Official recommended values https://github.com/ali-vilab/TeaCache/tree/main/TeaC
 +-------------------+--------+---------+--------+
 </pre> 
 """
-    EXPERIMENTAL = True
 
     def process(self, rel_l1_thresh, start_step, end_step, cache_device, use_coefficients, mode="e"):
         if cache_device == "main_device":
@@ -185,6 +184,39 @@ class WanVideoMagCache:
             "cache_type": "MagCache",
             "magcache_thresh": magcache_thresh,
             "magcache_K": magcache_K,
+            "start_step": start_step,
+            "end_step": end_step,
+            "cache_device": cache_device,
+        }
+        return (cache_args,)
+    
+class WanVideoEasyCache:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "easycache_thresh": ("FLOAT", {"default": 0.015, "min": 0.0, "max": 1.0, "step": 0.001, "tooltip": "How strongly to cache the output of diffusion model. This value must be non-negative."}),
+                "start_step": ("INT", {"default": 10, "min": 1, "max": 9999, "step": 1, "tooltip": "Step to start applying EasyCache"}),
+                "end_step": ("INT", {"default": -1, "min": -1, "max": 9999, "step": 1, "tooltip": "Step to end applying EasyCache"}),
+                "cache_device": (["main_device", "offload_device"], {"default": "offload_device", "tooltip": "Device to cache to"}),
+            },
+        }
+    RETURN_TYPES = ("CACHEARGS",)
+    RETURN_NAMES = ("cache_args",)
+    FUNCTION = "setargs"
+    CATEGORY = "WanVideoWrapper"
+    EXPERIMENTAL = True
+    DESCRIPTION = "EasyCache for WanVideoWrapper, source https://github.com/H-EmbodVis/EasyCache"
+
+    def setargs(self, easycache_thresh, start_step, end_step, cache_device):
+        if cache_device == "main_device":
+            cache_device = mm.get_torch_device()
+        else:
+            cache_device = mm.unet_offload_device()
+
+        cache_args = {
+            "cache_type": "EasyCache",
+            "easycache_thresh": easycache_thresh,
             "start_step": start_step,
             "end_step": end_step,
             "cache_device": cache_device,
@@ -2434,6 +2466,13 @@ class WanVideoSampler:
                 transformer.magcache_end_step = len(timesteps)-1 if cache_args["end_step"] == -1 else cache_args["end_step"]
                 transformer.magcache_thresh = cache_args["magcache_thresh"]
                 transformer.magcache_K = cache_args["magcache_K"]
+            elif cache_args["cache_type"] == "EasyCache":
+                log.info(f"EasyCache: Using cache device: {transformer.cache_device}")
+                transformer.easycache_state.clear_all()
+                transformer.enable_easycache = True
+                transformer.easycache_start_step = cache_args["start_step"]
+                transformer.easycache_end_step = len(timesteps)-1 if cache_args["end_step"] == -1 else cache_args["end_step"]
+                transformer.easycache_thresh = cache_args["easycache_thresh"]
 
         if slg_args is not None:
             assert batched_cfg is not None, "Batched cfg is not supported with SLG"
@@ -3436,7 +3475,12 @@ class WanVideoSampler:
                 
         if cache_args is not None:
             cache_type = cache_args["cache_type"]
-            states = transformer.teacache_state.states if cache_type == "TeaCache" else transformer.magcache_state.states
+            states = (
+                transformer.teacache_state.states if cache_type == "TeaCache" else
+                transformer.magcache_state.states if cache_type == "MagCache" else
+                transformer.easycache_state.states if cache_type == "EasyCache" else
+                None
+            )
             state_names = {
                 0: "conditional",
                 1: "unconditional"
@@ -3447,6 +3491,7 @@ class WanVideoSampler:
                     log.info(f"{cache_type} skipped: {len(state['skipped_steps'])} {name} steps: {state['skipped_steps']}")
             transformer.teacache_state.clear_all()
             transformer.magcache_state.clear_all()
+            transformer.easycache_state.clear_all()
             del states
 
         if force_offload:
@@ -3776,6 +3821,7 @@ NODE_CLASS_MAPPINGS = {
     "WanVideoContextOptions": WanVideoContextOptions,
     "WanVideoTeaCache": WanVideoTeaCache,
     "WanVideoMagCache": WanVideoMagCache,
+    "WanVideoEasyCache": WanVideoEasyCache,
     "WanVideoVRAMManagement": WanVideoVRAMManagement,
     "WanVideoTextEmbedBridge": WanVideoTextEmbedBridge,
     "WanVideoFlowEdit": WanVideoFlowEdit,
@@ -3815,6 +3861,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WanVideoContextOptions": "WanVideo Context Options",
     "WanVideoTeaCache": "WanVideo TeaCache",
     "WanVideoMagCache": "WanVideo MagCache",
+    "WanVideoEasyCache": "WanVideo EasyCache",
     "WanVideoVRAMManagement": "WanVideo VRAM Management",
     "WanVideoTextEmbedBridge": "WanVideo TextEmbed Bridge",
     "WanVideoFlowEdit": "WanVideo FlowEdit",
