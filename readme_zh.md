@@ -11,7 +11,7 @@
 
 ### 预构建安装:
 1. 安装 flash-attention 和 Block-Sparse-Attention:  
-	> 此处仅提供 `Windows` 平台预构建包, 建议更新显卡驱动, 并安装 `PyTorch 2.7.x` 后根据你的 Python 版本运行对应的安装命令
+	> 此处仅提供 `Windows` 平台预构建包, 建议更新显卡驱动, 并安装 `torch2.7.0+cu118` 然后根据你的 Python 版本运行对应的安装命令
 
 	```bash
 	# Python 3.10
@@ -74,11 +74,18 @@
 	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 	```
 
-## Usage
+## 使用方法
 与其他注意力方案不同, draft-attention 目前暂未支持任意分辨率视频生成.  
 所以在搭建工作流时请务必使用插件提供的 **`Find Draft-Attention Bucket`** 节点来将你输入的分辨率转换为 draft-attention 能接受的格式.  
 
 ![image](https://github.com/user-attachments/assets/f9a75df1-4843-4b34-ac9b-24e5f6f5602d)
+
+## 效果演示
+
+| 输入图像 | Sage-Attention | Draft-Attention (75%稀疏率) | Draft-Attention (90%稀疏率) |
+| :----:  | :----: | :----: | :----: |
+| <img width=480 src="https://github.com/user-attachments/assets/5c8699d4-c08d-4976-a7a4-7e35a2be4068"> | <video src="https://github.com/user-attachments/assets/d86e6008-37cb-4ae2-ab33-d5b28cc84802"> | <video src="https://github.com/user-attachments/assets/e34c3f54-c2c7-4ec1-bf6f-c91bbfca619a"> | <video src="https://github.com/user-attachments/assets/5ce30f31-1a93-486b-89e1-6f20ae2307b9"> |
+| **提示词:** *"女孩举起手放在额头附近遮挡太阳, 脸上带着迷人的微笑, 镜头逐渐拉远"* | 采样耗时: 70.38s | 采样耗时: 48.31s | 采样耗时: 40.91s |
 
 ## 鸣谢
 [ComfyUI-WanVideoWrapper](https://github.com/kijai/ComfyUI-WanVideoWrapper) - kijai  

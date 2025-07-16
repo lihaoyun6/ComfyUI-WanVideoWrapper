@@ -477,6 +477,13 @@ class WanVideoModelLoader:
                     #"spargeattn", needs tuning
                     #"spargeattn_tune",
                     ], {"default": "sdpa"}),
+                "sparsity_ratio": ("FLOAT", {
+                    "default": 0.75,
+                    "min": 0,
+                    "max": 0.99,
+                    "step": 0.01,
+                    "tooltip": "Only effective for draft-attn mode"
+                }),
                 "compile_args": ("WANCOMPILEARGS", ),
                 "block_swap_args": ("BLOCKSWAPARGS", ),
                 "lora": ("WANVIDLORA", {"default": None}),
@@ -493,7 +500,7 @@ class WanVideoModelLoader:
     CATEGORY = "WanVideoWrapper"
 
     def loadmodel(self, model, base_precision, load_device,  quantization,
-                  compile_args=None, attention_mode="sdpa", block_swap_args=None, lora=None, vram_management_args=None, vace_model=None, fantasytalking_model=None, multitalk_model=None):
+                  compile_args=None, attention_mode="sdpa", sparsity_ratio=0.75, block_swap_args=None, lora=None, vram_management_args=None, vace_model=None, fantasytalking_model=None, multitalk_model=None):
         assert not (vram_management_args is not None and block_swap_args is not None), "Can't use both block_swap_args and vram_management_args at the same time"
         lora_low_mem_load = False
         if lora is not None:
@@ -669,7 +676,7 @@ class WanVideoModelLoader:
             "text_len": 512,
             "num_heads": num_heads,
             "num_layers": num_layers,
-            "attention_mode": attention_mode,
+            "attention_mode": f"{attention_mode}@{int(sparsity_ratio * 100)}",
             "rope_func": "comfy",
             "main_device": device,
             "offload_device": offload_device,

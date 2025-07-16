@@ -49,6 +49,7 @@ def draft_attention_with_fallback(
     window_size=(-1, -1),
     deterministic=False,
     dtype=torch.bfloat16,
+    sparsity_ratio=0.75,
     version=None,
     idx_block=None,
     current_timestep=None,
@@ -163,7 +164,7 @@ def draft_attention_with_fallback(
             latent_w=48 if q.shape[0] == 32256 else 80,
             visual_len=q.shape[0],
             text_len=0,
-            sparsity_ratio=0.75 # todo
+            sparsity_ratio=sparsity_ratio
         )
     x = draft_attention(
         q,
@@ -337,12 +338,13 @@ def attention(
         return torch.nn.functional.scaled_dot_product_attention(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)).transpose(1, 2).contiguous()
     elif attention_mode == 'sageattn':
         return sageattn_func(q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)).transpose(1, 2).contiguous()
-    elif attention_mode in ['draft_attn+fa_3', 'draft_attn+fa_2']:
+    elif "draft_attn" in attention_mode:
         assert FLASH_ATTN_2_AVAILABLE or FLASH_ATTN_3_AVAILABLE, "We uses flash attention as the fallback solution, please install flash-attn first!"
         if "fa_2" in attention_mode:
             fa_version = 2
         elif "fa_3" in attention_mode:
             fa_version = 3
+        sparsity_ratio = float(attention_mode.split("@")[1]) / 100
         return draft_attention_with_fallback(
             q=q,
             k=k,
@@ -356,6 +358,7 @@ def attention(
             window_size=window_size,
             deterministic=deterministic,
             dtype=dtype,
+            sparsity_ratio=sparsity_ratio,
             version=fa_version,
             idx_block=idx_block,
             current_timestep=idx_block,
