@@ -14,65 +14,65 @@
 	> 此处仅提供 `Windows` 平台预构建包, 建议更新显卡驱动, 并安装 `PyTorch 2.7.x` 后根据你的 Python 版本运行对应的安装命令
 
 	```bash
-# Python 3.10
-pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp310-cp310-win_amd64.whl
-pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp310-cp310-win_amd64.whl
-```
+	# Python 3.10
+	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp310-cp310-win_amd64.whl
+	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp310-cp310-win_amd64.whl
+	```
 	
 	```bash
-# Python 3.11
-pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp311-cp311-win_amd64.whl
-pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp311-cp311-win_amd64.whl
-```
+	# Python 3.11
+	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp311-cp311-win_amd64.whl
+	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp311-cp311-win_amd64.whl
+	```
 
 	```bash
-# Python 3.12
-pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
-pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
-```
+	# Python 3.12
+	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
+	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
+	```
 
 	```bash
-# Python 3.13
-pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
-pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
-```
+	# Python 3.13
+	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
+	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
+	```
 
 2. 克隆此项目并安装依赖项:  
 
 	```bash
-cd [ComfyUI_Path]\custom_nodes
-git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
-pip install -r ComfyUI-WanVideoWrapper\requirements.txt
-```
+	cd [ComfyUI_Path]\custom_nodes
+	git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
+	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
+	```
 
-===
+---
 
 ### 编译安装:
 1. 编译并安装 Block-Sparse-Attention:
 	> 在编译前请确保已经安装了 CUDA Toolkit 以及 C++ 编译器和 PyTorch  
 
 	```bash
-pip install ninja wheel packaging
-#每个 JOB 大约会占用 16G 内存, 请根据系统内存容量设置. 例如物理内存 64G 内存建议设为不高于 8
-export MAX_JOBS=4
-#下载源代码并开始编译安装 (此过程根据你的 CPU 和内存容量, 可能会持续 1~3 个小时或更久, 请耐心等待)
-git clone https://github.com/lihaoyun6/Block-Sparse-Attention
-cd Block-Sparse-Attention
-pip install --no-build-isolation ./
-```
+	pip install ninja wheel packaging
+	#每个 JOB 大约会占用 16G 内存, 请根据系统内存容量设置. 例如物理内存 64G 内存建议设为不高于 8
+	export MAX_JOBS=4
+	#下载源代码并开始编译安装 (此过程根据你的 CPU 和内存容量, 可能会持续 1~3 个小时或更久, 请耐心等待)
+	git clone https://github.com/lihaoyun6/Block-Sparse-Attention
+	cd Block-Sparse-Attention
+	pip install --no-build-isolation ./
+	```
 2. 安装 flash-attention:  
 
 	```bash
-pip install flash-attention --no-build-isolation
-```
+	pip install flash-attention --no-build-isolation
+	```
 
 3. 克隆此项目并安装依赖项:  
 
 	```bash
-cd [ComfyUI_Path]\custom_nodes
-git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
-pip install -r ComfyUI-WanVideoWrapper\requirements.txt
-```
+	cd [ComfyUI_Path]\custom_nodes
+	git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
+	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
+	```
 
 ## Usage
 与其他注意力方案不同, draft-attention 目前暂未支持任意分辨率视频生成.  
