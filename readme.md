@@ -4,8 +4,8 @@
 This is a modified version of ComfyUI-WanVideoWrapper.  
  I
 added **[draft-attention](https://github.com/shawnricecake/draft-attention)** support and **[Euler/d](https://github.com/eddyhhlure1Eddy/Euler-d)** scheduler to ComfyUI-WanVideoWrapper to further speed up video inference.  
-And this update significantly improves the inference speed of NVIDIA Ampere GPU (sm80).  
-The average inference speed is increased by more than 30% compared to sage-attention.  
+And this update significantly improves the inference speed of NVIDIA Ampere / Ada / Hopper GPU.  
+The average inference speed is increased by more than 30% compared to sage-attn on A100.  
 **[[中文版本](./readme_zh.md)]** **[[original readme](./original_readme.md)]**  
 
 ## Installation

@@ -3,8 +3,8 @@
 
 本项目是修改版的`ComfyUI-WanVideoWrapper`.  
 我添加了 **[draft-attention](https://github.com/shawnricecake/draft-attention)** 注意力方案和 **[Euler/d](https://github.com/eddyhhlure1Eddy/Euler-d)** 调度器支持以进一步提升推理速度.  
-此更新显著的提高了 NVIDIA Ampere GPU (sm80) 上的视频生成速度,  
- 相比于 sage-attention 2.2.0 , 使用 draft-attention 平均可提速30%以上.  
+此注意力方案显著的提高了 NVIDIA Ampere / Ada / Hopper GPU 上的视频生成速度,  
+相比于 sage-attn 2.2 , 在 A100 GPU 上使用 draft-attn 进行视频推理平均可提速30%以上.  
 **[[WanVideoWrapper readme](./original_readme.md)]**  
 
 ## 安装
