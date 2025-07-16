@@ -482,7 +482,7 @@ class WanVideoModelLoader:
                     "min": 0,
                     "max": 0.99,
                     "step": 0.01,
-                    "tooltip": "Only effective for draft-attn mode"
+                    "tooltip": "Only effective for draft-attn mode, bigger = faster, but video may become unstable"
                 }),
                 "compile_args": ("WANCOMPILEARGS", ),
                 "block_swap_args": ("BLOCKSWAPARGS", ),
@@ -676,7 +676,11 @@ class WanVideoModelLoader:
             "text_len": 512,
             "num_heads": num_heads,
             "num_layers": num_layers,
-            "attention_mode": f"{attention_mode}@{int(sparsity_ratio * 100)}",
+            "attention_mode": (
+                f"{attention_mode}@{int(sparsity_ratio * 100)}"
+                if attention_mode in ("draft_attn+fa_2", "draft_attn+fa_3")
+                else attention_mode
+            ),
             "rope_func": "comfy",
             "main_device": device,
             "offload_device": offload_device,
