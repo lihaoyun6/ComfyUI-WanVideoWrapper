@@ -1,63 +1,77 @@
 # ComfyUI-WanVideoWrapper
-## 此插件仅支持Linux系统或在Windows中通过WSL2运行!
+## 此项目仅支持NVIDIA RTX30/40及A100/H100架构的GPU!
 
 本项目是修改版的`ComfyUI-WanVideoWrapper`.  
 我添加了 **[draft-attention](https://github.com/shawnricecake/draft-attention)** 注意力方案和 **[Euler/d](https://github.com/eddyhhlure1Eddy/Euler-d)** 调度器支持以进一步提升推理速度.  
 此更新显著的提高了 NVIDIA Ampere GPU (sm80) 上的视频生成速度,  
  相比于 sage-attention 2.2.0 , 使用 draft-attention 平均可提速30%以上.  
-**[[中文版本](./readme_zh.md)]** **[[original readme](./original_readme.md)]**  
+**[[WanVideoWrapper readme](./original_readme.md)]**  
 
 ## 安装
 
 ### 预构建安装:
-1) 本插件基于 **[Block-Sparse-Attention](https://github.com/mit-han-lab/Block-Sparse-Attention)** 和 **[flash-attention](https://github.com/Dao-AILab/flash-attention)**, 所以你需要先安装齐备:  
+1. 安装 flash-attention 和 Block-Sparse-Attention:  
+	> 此处仅提供 `Windows` 平台预构建包, 建议更新显卡驱动, 并安装 `PyTorch 2.7.x` 后根据你的 Python 版本运行对应的安装命令
 
-```bash
-pip install flash-attention
-pip install https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper/releases/download/v0.0.1/block_sparse_attn-0.0.1-nv-sm80-cp313-cp313-linux_x86_64.whl
+	```bash
+# Python 3.10
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp310-cp310-win_amd64.whl
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp310-cp310-win_amd64.whl
+```
+	
+	```bash
+# Python 3.11
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp311-cp311-win_amd64.whl
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp311-cp311-win_amd64.whl
 ```
 
-> 此预构建 wheel 仅支持 NVIDIA Ampere GPU (sm80) 和 Python 3.13! 如果你需要配合其他架构的 GPU 使用, 请选择`编译安装`方案.  
-> 
+	```bash
+# Python 3.12
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
+```
 
-2) 克隆此项目到 ComfyUI 的 `custom_nodes` 目录中.  
+	```bash
+# Python 3.13
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
+```
 
-3) 然后使用此命令安装依赖项: `pip install -r requirements.txt`
-   或者如果你使用的是便携版 ComfyUI, 则请在 `ComfyUI_windows_portable` 文件夹中执行:
+2. 克隆此项目并安装依赖项:  
 
-```bash
-python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-WanVideoWrapper\requirements.txt
+	```bash
+cd [ComfyUI_Path]\custom_nodes
+git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
+pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 ```
 
 ===
 
 ### 编译安装:
-1) 编译并安装 Block-Sparse-Attention:
+1. 编译并安装 Block-Sparse-Attention:
+	> 在编译前请确保已经安装了 CUDA Toolkit 以及 C++ 编译器和 PyTorch  
 
-```bash
-pip install packaging
-#安装 ninja 可以有效提高 CUDA 编译效率
-pip install ninja
-#如果你的系统内存不足 96GB, 请限制最大编译线程数为 5
-export MAX_JOBS=5
-#下载源代码并开始编译安装.
-#此过程根据你的 CPU 和内存容量, 可能会持续一个小时甚至更久, 请耐心等待安装完成.
-git clone https://github.com/mit-han-lab/Block-Sparse-Attention
+	```bash
+pip install ninja wheel packaging
+#每个 JOB 大约会占用 16G 内存, 请根据系统内存容量设置. 例如物理内存 64G 内存建议设为不高于 8
+export MAX_JOBS=4
+#下载源代码并开始编译安装 (此过程根据你的 CPU 和内存容量, 可能会持续 1~3 个小时或更久, 请耐心等待)
+git clone https://github.com/lihaoyun6/Block-Sparse-Attention
 cd Block-Sparse-Attention
-python setup.py install
+pip install --no-build-isolation ./
 ```
-2) 安装 flash-attention:  
+2. 安装 flash-attention:  
 
-```bash
-pip install flash-attention
+	```bash
+pip install flash-attention --no-build-isolation
 ```
-3) 克隆此项目到 ComfyUI 的 `custom_nodes` 目录中.  
 
-4) 然后使用此命令安装依赖项: `pip install -r requirements.txt`
-   或者如果你使用的是便携版 ComfyUI, 则请在 `ComfyUI_windows_portable` 文件夹中执行:
+3. 克隆此项目并安装依赖项:  
 
-```bash
-python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-WanVideoWrapper\requirements.txt
+	```bash
+cd [ComfyUI_Path]\custom_nodes
+git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
+pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 ```
 
 ## Usage

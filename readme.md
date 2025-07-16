@@ -1,5 +1,5 @@
 # ComfyUI-WanVideoWrapper
-## This project can only be run on Linux or WSL2 on Windows!
+## This project only supports NVIDIA RTX30/40 and A100/H100 GPU!
 
 This is a modified version of ComfyUI-WanVideoWrapper.  
  I
@@ -10,55 +10,73 @@ The average inference speed is increased by more than 30% compared to sage-atten
 
 ## Installation
 
-### Pre-Build Installation:
-1) This plugin is based on **[Block-Sparse-Attention](https://github.com/mit-han-lab/Block-Sparse-Attention)** and **[flash-attention](https://github.com/Dao-AILab/flash-attention)**, so you need to install them first:  
+### Pre-Build Installation:    
+1. Install flash-attention and Block-Sparse-Attention.   
+	> There are only wheels for `win_amd64` here!  
+	> It's recommended to update NVIDIA driver and install `PyTorch 2.7.x` and install wheels according to your python version
 
-```bash
-pip install flash-attention
-pip install https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper/releases/download/v0.0.1/block_sparse_attn-0.0.1-nv-sm80-cp313-cp313-linux_x86_64.whl
+	```bash
+# Python 3.10
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp310-cp310-win_amd64.whl
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp310-cp310-win_amd64.whl
+```
+	
+	```bash
+# Python 3.11
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp311-cp311-win_amd64.whl
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp311-cp311-win_amd64.whl
 ```
 
-> This wheel only supports NVIDIA Ampere GPU (sm80) and Python 3.13! If you need to use it on other GPUs, please build it yourself.  
-> 
+	```bash
+# Python 3.12
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp312-cp312-win_amd64.whl
+```
 
-2) Then clone this repo into `custom_nodes` folder.  
+	```bash
+# Python 3.13
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/flash_attn-2.8.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
+pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
+```
 
-3) Install dependencies: `pip install -r requirements.txt`
-   or if you use the portable install, run this in `ComfyUI_windows_portable` folder:
+2. Clone this repo and install the dependencies:  
 
-```bash
-python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-WanVideoWrapper\requirements.txt
+	```bash
+cd [ComfyUI_Path]\custom_nodes
+git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
+pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 ```
 
 ===
 
 ### Manual Installation:
-1) Build and install Block-Sparse-Attention:
+1. Build and install Block-Sparse-Attention:
+	> Please make sure you have installed the CUDA Toolkit, C++ compiler and PyTorch  
 
-```bash
-pip install packaging
-#Install ninja for faster compilation
-pip install ninja
-#If your system memory is less than 96GB
-export MAX_JOBS=5
+	```bash
+pip install ninja wheel packaging
+#Each JOB will use about 8GB of RAM, please set it appropriately.
+#For example, if the you have 64GB RAM, you can set MAX_JOBS=8
+export MAX_JOBS=4
 #Download source code and install.
-#This process may take more than an hour depending on your CPU and memory. Please be patient.
-git clone https://github.com/mit-han-lab/Block-Sparse-Attention
+#This process may take 1~3 hours depending on your CPU and RAM. Please be patient.
+git clone https://github.com/lihaoyun6/Block-Sparse-Attention
 cd Block-Sparse-Attention
-python setup.py install
+pip install --no-build-isolation ./
 ```
-2) Install flash-attention:  
 
-```bash
-pip install flash-attention
+2. Install flash-attention:  
+
+	```bash
+pip install flash-attention --no-build-isolation
 ```
-3) Then clone this repo into `custom_nodes` folder.  
 
-4) Install dependencies: `pip install -r requirements.txt`
-   or if you use the portable install, run this in `ComfyUI_windows_portable` folder:
+3. Clone this repo and install the dependencies:  
 
-```bash
-python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-WanVideoWrapper\requirements.txt
+	```bash
+cd [ComfyUI_Path]\custom_nodes
+git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
+pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 ```
 
 ## Usage
