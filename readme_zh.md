@@ -84,7 +84,7 @@
 
 | 输入图像 | Sage-Attention | Draft-Attention (75%稀疏率) | Draft-Attention (90%稀疏率) |
 | :----:  | :----: | :----: | :----: |
-| <img width=480 src="https://github.com/user-attachments/assets/5c8699d4-c08d-4976-a7a4-7e35a2be4068"> | <video src="https://github.com/user-attachments/assets/d86e6008-37cb-4ae2-ab33-d5b28cc84802"> | <video src="https://github.com/user-attachments/assets/e34c3f54-c2c7-4ec1-bf6f-c91bbfca619a"> | <video src="https://github.com/user-attachments/assets/5ce30f31-1a93-486b-89e1-6f20ae2307b9"> |
+| <img width=200 src="https://github.com/user-attachments/assets/5c8699d4-c08d-4976-a7a4-7e35a2be4068"> | <video src="https://github.com/user-attachments/assets/d86e6008-37cb-4ae2-ab33-d5b28cc84802"> | <video src="https://github.com/user-attachments/assets/e34c3f54-c2c7-4ec1-bf6f-c91bbfca619a"> | <video src="https://github.com/user-attachments/assets/5ce30f31-1a93-486b-89e1-6f20ae2307b9"> |
 | **提示词:** *"女孩举起手放在额头附近遮挡太阳, 脸上带着迷人的微笑, 镜头逐渐拉远"* | 采样耗时: 70.38s | 采样耗时: 48.31s | 采样耗时: 40.91s |
 
 ## 鸣谢
