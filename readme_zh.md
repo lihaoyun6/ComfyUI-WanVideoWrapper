@@ -7,6 +7,13 @@
 相比于 sage-attn 2.2 , 在 A100 GPU 上使用 draft-attn 进行视频推理平均可提速30%以上.  
 **[[WanVideoWrapper readme](./original_readme.md)]**  
 
+## 效果演示
+
+| 输入图像 | Sage-Attention | Draft-Attention (75%稀疏率) | Draft-Attention (90%稀疏率) |
+| :----:  | :----: | :----: | :----: |
+| <img width=200 src="https://github.com/user-attachments/assets/5c8699d4-c08d-4976-a7a4-7e35a2be4068"> | <video src="https://github.com/user-attachments/assets/d86e6008-37cb-4ae2-ab33-d5b28cc84802"> | <video src="https://github.com/user-attachments/assets/e34c3f54-c2c7-4ec1-bf6f-c91bbfca619a"> | <video src="https://github.com/user-attachments/assets/5ce30f31-1a93-486b-89e1-6f20ae2307b9"> |
+| **提示词:** *"女孩举起手放在额头附近遮挡太阳, 脸上带着迷人的微笑, 镜头逐渐拉远"* | 采样耗时: 70.38s | 采样耗时: 48.31s | 采样耗时: 40.91s |
+
 ## 安装
 
 ### 预构建安装:
@@ -79,13 +86,6 @@
 所以在搭建工作流时请务必使用插件提供的 **`Find Draft-Attention Bucket`** 节点来将你输入的分辨率转换为 draft-attention 能接受的格式.  
 
 ![image](https://github.com/user-attachments/assets/f9a75df1-4843-4b34-ac9b-24e5f6f5602d)
-
-## 效果演示
-
-| 输入图像 | Sage-Attention | Draft-Attention (75%稀疏率) | Draft-Attention (90%稀疏率) |
-| :----:  | :----: | :----: | :----: |
-| <img width=200 src="https://github.com/user-attachments/assets/5c8699d4-c08d-4976-a7a4-7e35a2be4068"> | <video src="https://github.com/user-attachments/assets/d86e6008-37cb-4ae2-ab33-d5b28cc84802"> | <video src="https://github.com/user-attachments/assets/e34c3f54-c2c7-4ec1-bf6f-c91bbfca619a"> | <video src="https://github.com/user-attachments/assets/5ce30f31-1a93-486b-89e1-6f20ae2307b9"> |
-| **提示词:** *"女孩举起手放在额头附近遮挡太阳, 脸上带着迷人的微笑, 镜头逐渐拉远"* | 采样耗时: 70.38s | 采样耗时: 48.31s | 采样耗时: 40.91s |
 
 ## 鸣谢
 [ComfyUI-WanVideoWrapper](https://github.com/kijai/ComfyUI-WanVideoWrapper) - kijai  
