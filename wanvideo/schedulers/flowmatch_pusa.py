@@ -38,7 +38,6 @@ class FlowMatchSchedulerPusa():
 
 
     def step(self, model_output, timestep, sample, to_final=False, **kwargs):
-        print("timestep in scheduler", timestep)
         if isinstance(timestep, torch.Tensor):
             # timestep = timestep.cpu()
             self.timesteps = self.timesteps.to(timestep.device)
@@ -75,7 +74,7 @@ class FlowMatchSchedulerPusa():
             if torch.any(timestep == 0):
                 zero_indices = torch.where(timestep == 0)[1].to(torch.long)
                 sigma[:,:,zero_indices] = 0
-            print("sigma", sigma[0,0,:,0,0], '\n', "sigma_", sigma_[0,0,:,0,0])
+            #print("sigma", sigma[0,0,:,0,0], '\n', "sigma_", sigma_[0,0,:,0,0])
             
             prev_sample = sample + model_output * (sigma_ - sigma)
         return prev_sample

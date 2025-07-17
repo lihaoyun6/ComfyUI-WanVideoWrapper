@@ -6,9 +6,9 @@ import math
 from tqdm import tqdm
 
 from ..wanvideo.modules.model import rope_params
-from ..wanvideo.utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
+from ..wanvideo.schedulers.fm_solvers_unipc import FlowUniPCMultistepScheduler
 from diffusers.schedulers import FlowMatchEulerDiscreteScheduler
-from ..wanvideo.utils.scheduling_flow_match_lcm import FlowMatchLCMScheduler
+from ..wanvideo.schedulers.scheduling_flow_match_lcm import FlowMatchLCMScheduler
 from ..nodes import optimized_scale
 from einops import rearrange
 
