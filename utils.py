@@ -233,3 +233,8 @@ def fourier_filter(x, scale_low=1.0, scale_high=1.5, freq_cutoff=20):
     x_filtered = x_filtered.to(dtype)
 
     return x_filtered
+
+def is_image_black(image, threshold=1e-3):
+    if image.min() < 0:
+        image = (image + 1) / 2
+    return torch.all(image < threshold).item()

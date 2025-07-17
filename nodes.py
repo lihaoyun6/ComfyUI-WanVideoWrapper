@@ -2,7 +2,7 @@ import os
 import torch
 import torch.nn.functional as F
 import gc
-from .utils import log, print_memory, apply_lora, clip_encode_image_tiled, fourier_filter
+from .utils import log, print_memory, apply_lora, clip_encode_image_tiled, fourier_filter, is_image_black
 import numpy as np
 import math
 from tqdm import tqdm
@@ -1129,7 +1129,7 @@ class WanVideoEmptyEmbeds:
             },
             "optional": {
                 "control_embeds": ("WANVIDIMAGE_EMBEDS", {"tooltip": "control signal for the Fun -model"}),
-                "first_latent": ("LATENT", {"tooltip": "First latent to use for the Pusa -model"}),
+                "extra_latents": ("LATENT", {"tooltip": "First latent to use for the Pusa -model"}),
             }
         }
 
@@ -1138,7 +1138,7 @@ class WanVideoEmptyEmbeds:
     FUNCTION = "process"
     CATEGORY = "WanVideoWrapper"
 
-    def process(self, num_frames, width, height, control_embeds=None, first_latent=None):
+    def process(self, num_frames, width, height, control_embeds=None, extra_latents=None):
         target_shape = (16, (num_frames - 1) // VAE_STRIDE[0] + 1,
                         height // VAE_STRIDE[1],
                         width // VAE_STRIDE[2])
@@ -1147,7 +1147,7 @@ class WanVideoEmptyEmbeds:
             "target_shape": target_shape,
             "num_frames": num_frames,
             "control_embeds": control_embeds["control_embeds"] if control_embeds is not None else None,
-            "first_latent": first_latent
+            "extra_latents": extra_latents
         }
     
         return (embeds,)
@@ -2345,9 +2345,16 @@ class WanVideoSampler:
                 if mask.shape[2] != noise.shape[1]:
                     mask = torch.cat([torch.zeros(1, noise.shape[0], noise.shape[1] - mask.shape[2], noise.shape[2], noise.shape[3]), mask], dim=2)
             
-        if (first_latent := image_embeds.get("first_latent")) is not None:
-            first_latent = first_latent["samples"].squeeze(0).to(noise)
-            noise[:,0:first_latent.shape[1]] = first_latent
+        if (extra_latents := image_embeds.get("extra_latents"), None) is not None:
+            encoded_image_latents = extra_latents["samples"].squeeze(0).to(noise)
+            if (empty_latent_indices := extra_latents.get("empty_latent_indices"), None) is not None:
+                noise_out = encoded_image_latents.clone()
+                for idx in empty_latent_indices:
+                    print(f"Adding noise to Empty latent index: {idx}")
+                    noise_out[:, idx] = noise[:, idx]
+                noise = noise_out
+            else:
+                noise[:,0:encoded_image_latents.shape[1]] = encoded_image_latents
 
         latent = noise.to(device)
 
@@ -2941,8 +2948,14 @@ class WanVideoSampler:
                 timestep = torch.tensor([t]).to(device)
                 if scheduler == "flowmatch_pusa":
                     timestep = timestep.unsqueeze(1).repeat(1, latent_video_length)
-                    if first_latent is not None:
-                        timestep[:,0:first_latent.shape[1]] = 0 
+                    if extra_latents is not None:
+                        if empty_latent_indices is not None:
+                            # Set timestep to zero for all non-noise (non-empty) indices
+                            non_noise_indices = [i for i in range(timestep.shape[1]) if i not in empty_latent_indices]
+                            timestep[:, non_noise_indices] = 0
+                        else:
+                            timestep[:,0:encoded_image_latents.shape[1]] = 0 
+                    print(f"timestep: {timestep}")
                 current_step_percentage = idx / len(timesteps)
 
                 ### latent shift
@@ -3703,6 +3716,35 @@ class WanVideoEncode:
             image = common_upscale(image.movedim(-1, 1), new_width, new_height, "lanczos", "disabled").movedim(1, -1)
 
         image = image.to(vae.dtype).to(device).unsqueeze(0).permute(0, 4, 1, 2, 3) # B, C, T, H, W
+
+
+        empty_frame_indices = []
+        for i in range(image.shape[2]):
+            if is_image_black(image[:, :, i]):
+                empty_frame_indices.append(i)
+        empty_frame_indices = []
+        for i in range(image.shape[2]):
+            if is_image_black(image[:, :, i]):
+                empty_frame_indices.append(i)
+        empty_latent_indices = []
+        if empty_frame_indices:
+            frames_per_latent = 4
+            num_frames = image.shape[2]
+            # Special mapping: latent 0 = [0], latent 1 = [1,2,3,4], latent 2 = [5,6,7,8], ...
+            latent_frame_ranges = []
+            latent_frame_ranges.append([0])
+            for i in range(1, math.ceil((num_frames - 1) / frames_per_latent) + 1):
+                start = 1 + (i - 1) * frames_per_latent
+                end = min(start + frames_per_latent, num_frames)
+                latent_frame_ranges.append(list(range(start, end)))
+            for latent_idx, latent_frames in enumerate(latent_frame_ranges):
+                print(f"latent {latent_idx}: frames {latent_frames}")
+                if latent_frames and set(latent_frames).issubset(empty_frame_indices):
+                    empty_latent_indices.append(latent_idx)
+            if empty_latent_indices:
+                log.info(f"Empty frames {empty_frame_indices} map to latents {empty_latent_indices}")
+        
+
         if noise_aug_strength > 0.0:
             image = add_noise_to_reference_video(image, ratio=noise_aug_strength)
 
@@ -3738,7 +3780,7 @@ class WanVideoEncode:
             vae.to(offload_device)
         mm.soft_empty_cache()
  
-        return ({"samples": latents, "mask": latent_mask},)
+        return ({"samples": latents, "mask": latent_mask, "empty_latent_indices": empty_latent_indices},)
 
 class FindDraftAttentionBucket:
     @classmethod
