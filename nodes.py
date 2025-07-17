@@ -2347,10 +2347,10 @@ class WanVideoSampler:
             
         if (extra_latents := image_embeds.get("extra_latents"), None) is not None:
             encoded_image_latents = extra_latents["samples"].squeeze(0).to(noise)
-            if (empty_latent_indices := extra_latents.get("empty_latent_indices"), None) is not None:
+            if (empty_latent_indices := extra_latents.get("empty_latent_indices"), None) is not None and len(empty_latent_indices) > 0:
                 noise_out = encoded_image_latents.clone()
                 for idx in empty_latent_indices:
-                    print(f"Adding noise to Empty latent index: {idx}")
+                    #print(f"Adding noise to Empty latent index: {idx}")
                     noise_out[:, idx] = noise[:, idx]
                 noise = noise_out
             else:
@@ -2949,13 +2949,13 @@ class WanVideoSampler:
                 if scheduler == "flowmatch_pusa":
                     timestep = timestep.unsqueeze(1).repeat(1, latent_video_length)
                     if extra_latents is not None:
-                        if empty_latent_indices is not None:
+                        if empty_latent_indices is not None and len(empty_latent_indices) > 0:
                             # Set timestep to zero for all non-noise (non-empty) indices
                             non_noise_indices = [i for i in range(timestep.shape[1]) if i not in empty_latent_indices]
                             timestep[:, non_noise_indices] = 0
                         else:
                             timestep[:,0:encoded_image_latents.shape[1]] = 0 
-                    print(f"timestep: {timestep}")
+                    #print(f"timestep: {timestep}")
                 current_step_percentage = idx / len(timesteps)
 
                 ### latent shift
