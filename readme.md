@@ -26,8 +26,18 @@ So you need to use the **`Find Draft-Attention Bucket`** node to convert the vid
 
 ## Installation
 
-### Pre-Build Installation (✅Recommend):    
-1. Install flash-attention and Block-Sparse-Attention.   
+***! Please uninstall the original Comfyui-WanVideoWrapper before installing my version!***
+
+### Pre-Build Installation (✅Recommend):  
+1. Clone this repo and install the dependencies:  
+
+	```bash
+	cd [ComfyUI_Path]\custom_nodes
+	git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
+	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
+	```
+
+2. Install flash-attention and Block-Sparse-Attention.   
 	> There are only wheels for `Windows_x64` here!  
 	> It's recommended to update GPU driver and install `torch2.7.0+cu128`, then install wheels according to your python version:
 
@@ -55,7 +65,10 @@ So you need to use the **`Find Draft-Attention Bucket`** node to convert the vid
 	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
 	```
 
-2. Clone this repo and install the dependencies:  
+---
+
+### Manual Installation:
+1. Clone this repo and install the dependencies:  
 
 	```bash
 	cd [ComfyUI_Path]\custom_nodes
@@ -63,11 +76,8 @@ So you need to use the **`Find Draft-Attention Bucket`** node to convert the vid
 	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 	```
 
----
-
-### Manual Installation:
-1. Build and install Block-Sparse-Attention:
-	> Please make sure you have installed the CUDA Toolkit, C++ compiler and PyTorch  
+2. Build and install Block-Sparse-Attention:
+	> Please make sure you have installed the CUDA>=11.6, C++ compiler and PyTorch  
 
 	```bash
 	pip install ninja wheel packaging
@@ -81,18 +91,10 @@ So you need to use the **`Find Draft-Attention Bucket`** node to convert the vid
 	pip install --no-build-isolation ./
 	```
 
-2. Install flash-attention:  
+3. Install flash-attention:  
 
 	```bash
 	pip install flash-attention --no-build-isolation
-	```
-
-3. Clone this repo and install the dependencies:  
-
-	```bash
-	cd [ComfyUI_Path]\custom_nodes
-	git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
-	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 	```
 
 ## Thanks

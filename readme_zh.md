@@ -26,8 +26,19 @@
 
 ## 安装
 
+***!如果你安装了原版的 Comfyui-WanVideoWrapper 请先卸载后再安装本插件!***  
+
 ### 预构建安装:
-1. 安装 flash-attention 和 Block-Sparse-Attention:  
+
+1. 克隆此项目并安装依赖项:  
+
+	```bash
+	cd [ComfyUI_Path]\custom_nodes
+	git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
+	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
+	```
+
+2. 安装 flash-attention 和 Block-Sparse-Attention:  
 	> 此处仅提供 `Windows_x64` 平台预构建包, 建议更新显卡驱动并安装 `torch2.7.0+cu128`, 然后根据 Python 版本安装对应的后端库:
 
 	```bash
@@ -54,7 +65,11 @@
 	pip install https://github.com/lihaoyun6/Block-Sparse-Attention/releases/download/v0.0.1/block_sparse_attn-0.0.1+cu128torch2.7cxx11abiFALSE-cp313-cp313-win_amd64.whl
 	```
 
-2. 克隆此项目并安装依赖项:  
+
+---
+
+### 编译安装:
+1. 克隆此项目并安装依赖项:  
 
 	```bash
 	cd [ComfyUI_Path]\custom_nodes
@@ -62,11 +77,8 @@
 	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 	```
 
----
-
-### 编译安装:
-1. 编译并安装 Block-Sparse-Attention:
-	> 在编译前请确保已经安装了 CUDA Toolkit 以及 C++ 编译器和 PyTorch  
+2. 编译并安装 Block-Sparse-Attention:
+	> 在编译前请确保已经安装了 CUDA >= 11.6 以及 C++ 编译器和 PyTorch  
 
 	```bash
 	pip install ninja wheel packaging
@@ -77,18 +89,10 @@
 	cd Block-Sparse-Attention
 	pip install --no-build-isolation ./
 	```
-2. 安装 flash-attention:  
+3. 安装 flash-attention:  
 
 	```bash
 	pip install flash-attention --no-build-isolation
-	```
-
-3. 克隆此项目并安装依赖项:  
-
-	```bash
-	cd [ComfyUI_Path]\custom_nodes
-	git clone https://github.com/lihaoyun6/ComfyUI-WanVideoWrapper
-	pip install -r ComfyUI-WanVideoWrapper\requirements.txt
 	```
 
 ## 鸣谢
