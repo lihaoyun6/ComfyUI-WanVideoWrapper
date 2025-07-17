@@ -14,6 +14,7 @@ from .wanvideo.utils.fm_solvers import (FlowDPMSolverMultistepScheduler,
                                get_sampling_sigmas, retrieve_timesteps)
 from .wanvideo.utils.fm_solvers_unipc import FlowUniPCMultistepScheduler
 from .wanvideo.utils.basic_flowmatch import FlowMatchScheduler
+from .wanvideo.utils.flowmatch_pusa import FlowMatchSchedulerPusa
 from diffusers.schedulers import FlowMatchEulerDiscreteScheduler, DEISMultistepScheduler
 from .wanvideo.utils.scheduling_flow_match_lcm import FlowMatchLCMScheduler
 from .wanvideo.utils.fm_solvers_euler_d import FlowMatchEulerDynamicScheduler
@@ -1128,6 +1129,7 @@ class WanVideoEmptyEmbeds:
             },
             "optional": {
                 "control_embeds": ("WANVIDIMAGE_EMBEDS", {"tooltip": "control signal for the Fun -model"}),
+                "first_latent": ("LATENT", {"tooltip": "First latent to use for the Pusa -model"}),
             }
         }
 
@@ -1136,7 +1138,7 @@ class WanVideoEmptyEmbeds:
     FUNCTION = "process"
     CATEGORY = "WanVideoWrapper"
 
-    def process(self, num_frames, width, height, control_embeds=None):
+    def process(self, num_frames, width, height, control_embeds=None, first_latent=None):
         target_shape = (16, (num_frames - 1) // VAE_STRIDE[0] + 1,
                         height // VAE_STRIDE[1],
                         width // VAE_STRIDE[2])
@@ -1145,6 +1147,7 @@ class WanVideoEmptyEmbeds:
             "target_shape": target_shape,
             "num_frames": num_frames,
             "control_embeds": control_embeds["control_embeds"] if control_embeds is not None else None,
+            "first_latent": first_latent
         }
     
         return (embeds,)
@@ -1802,7 +1805,7 @@ class WanVideoSampler:
                 "shift": ("FLOAT", {"default": 5.0, "min": 0.0, "max": 1000.0, "step": 0.01}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "force_offload": ("BOOLEAN", {"default": True, "tooltip": "Moves the model to the offload device after sampling"}),
-                "scheduler": (["unipc", "unipc/beta", "dpm++", "dpm++/beta","dpm++_sde", "dpm++_sde/beta", "euler", "euler/d", "euler/beta", "euler/accvideo", "deis", "lcm", "lcm/beta", "flowmatch_causvid", "flowmatch_distill", "multitalk"],
+                "scheduler": (["unipc", "unipc/beta", "dpm++", "dpm++/beta","dpm++_sde", "dpm++_sde/beta", "euler", "euler/d", "euler/beta", "euler/accvideo", "deis", "lcm", "lcm/beta", "flowmatch_causvid", "flowmatch_distill", "flowmatch_pusa", "multitalk"],
                     {
                         "default": 'unipc'
                     }),
@@ -1947,6 +1950,12 @@ class WanVideoSampler:
                 
                 sample_scheduler.timesteps = denoising_step_list[:steps].clone().detach().to(device)
                 sample_scheduler.sigmas = torch.cat([sample_scheduler.timesteps / 1000, torch.tensor([0.0], device=device)])
+            elif 'flowmatch_pusa' in scheduler:
+                sample_scheduler = FlowMatchSchedulerPusa(
+                    shift=shift, sigma_min=0.0, extra_one_step=True
+                )
+                sample_scheduler.set_timesteps(steps, denoising_strength=denoise_strength, shift=shift)
+        
             return sample_scheduler, timesteps
           
         if scheduler != "multitalk":
@@ -2334,7 +2343,11 @@ class WanVideoSampler:
             mask = samples.get("mask", None)
             if mask is not None:
                 if mask.shape[2] != noise.shape[1]:
-                    mask = torch.cat([torch.zeros(1, noise.shape[0], noise.shape[1] - mask.shape[2], noise.shape[2], noise.shape[3]), mask], dim=2)            
+                    mask = torch.cat([torch.zeros(1, noise.shape[0], noise.shape[1] - mask.shape[2], noise.shape[2], noise.shape[3]), mask], dim=2)
+            
+        if (first_latent := image_embeds.get("first_latent")) is not None:
+            first_latent = first_latent["samples"].squeeze(0).to(noise)
+            noise[:,0:first_latent.shape[1]] = first_latent
 
         latent = noise.to(device)
 
@@ -2926,6 +2939,10 @@ class WanVideoSampler:
                 latent_model_input = latent.to(device)
 
                 timestep = torch.tensor([t]).to(device)
+                if scheduler == "flowmatch_pusa":
+                    timestep = timestep.unsqueeze(1).repeat(1, latent_video_length)
+                    if first_latent is not None:
+                        timestep[:,0:first_latent.shape[1]] = 0 
                 current_step_percentage = idx / len(timesteps)
 
                 ### latent shift
@@ -3441,7 +3458,7 @@ class WanVideoSampler:
                         step_args.pop("generator", None)
                     temp_x0 = sample_scheduler.step(
                         noise_pred[:, :orig_noise_len].unsqueeze(0) if recammaster is not None else noise_pred.unsqueeze(0),
-                        t,
+                        timestep,
                         latent[:, :orig_noise_len].unsqueeze(0) if recammaster is not None else latent.unsqueeze(0),
                         #return_dict=False,
                         **step_args)[0]

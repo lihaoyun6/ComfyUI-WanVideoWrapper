@@ -911,10 +911,6 @@ class Head(nn.Module):
             x(Tensor): Shape [B, L1, C]
             e(Tensor): Shape [B, C]
         """
-        
-        # e = (self.modulation.to(e.device) + e.unsqueeze(1)).chunk(2, dim=1)
-        # normed = self.norm(x)
-        # x = self.head(normed * (1 + e[1]) + e[0])
 
         e = self.get_mod(e)
         x = self.head(self.norm(x).mul_(1 + e[1]).add_(e[0]))
@@ -1498,9 +1494,9 @@ class WanModel(ModelMixin, ConfigMixin):
         # time embeddings
         if t.dim() == 2:
             b, f = t.shape
-            diffusion_forcing = True
+            expanded_timesteps = True
         else:
-            diffusion_forcing = False
+            expanded_timesteps = False
 
         e = self.time_embedding(
             sinusoidal_embedding_1d(self.freq_dim, t.flatten()).to(x.dtype)
@@ -1511,12 +1507,12 @@ class WanModel(ModelMixin, ConfigMixin):
             fps_embeds = torch.tensor(fps_embeds, dtype=torch.long, device=device)
 
             fps_emb = self.fps_embedding(fps_embeds).to(e0.dtype)
-            if diffusion_forcing:
+            if expanded_timesteps:
                 e0 = e0 + self.fps_projection(fps_emb).unflatten(1, (6, self.dim)).repeat(t.shape[1], 1, 1)
             else:
                 e0 = e0 + self.fps_projection(fps_emb).unflatten(1, (6, self.dim))
 
-        if diffusion_forcing:
+        if expanded_timesteps:
             e = e.view(b, f, 1, 1, self.dim).expand(b, f, grid_sizes[0][1], grid_sizes[0][2], self.dim)
             e0 = e0.view(b, f, 1, 1, 6, self.dim).expand(b, f, grid_sizes[0][1], grid_sizes[0][2], 6, self.dim)
             
@@ -1529,7 +1525,7 @@ class WanModel(ModelMixin, ConfigMixin):
             
             e = e.to(self.offload_device, non_blocking=self.use_non_blocking)
 
-        # context (text embedding)
+        #context (text embedding)
         context_lens = None
         if hasattr(self, "text_embedding") and context != []:
             if self.offload_txt_emb:
