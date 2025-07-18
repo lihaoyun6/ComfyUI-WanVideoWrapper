@@ -29,7 +29,7 @@ import gc
 import comfy.model_management as mm
 from ...utils import log, get_module_memory_mb
 from ...cache_methods.cache_methods import TeaCacheState, MagCacheState, EasyCacheState, relative_l1_distance
-
+from ..radial_attention.attn_mask import MaskMap
 from ...multitalk.multitalk import get_attn_map_with_target
 
 from comfy.ldm.flux.math import apply_rope as apply_rope_comfy
@@ -1461,6 +1461,8 @@ class WanModel(ModelMixin, ConfigMixin):
             attn_cond = attn_cond.flatten(2).transpose(1, 2)
             x[0] = torch.cat([x[0], attn_cond], dim=1)
             seq_len += attn_cond.size(1)
+            for block in self.blocks:
+                block.self_attn.mask_map = MaskMap(video_token_num=seq_len, num_frame=F+1)
 
         if self.ref_conv is not None and fun_ref is not None:
             fun_ref = self.ref_conv(fun_ref).flatten(2).transpose(1, 2)
