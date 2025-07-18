@@ -241,3 +241,23 @@ def is_image_black(image, threshold=1e-3):
     if image.min() < 0:
         image = (image + 1) / 2
     return torch.all(image < threshold).item()
+
+def add_noise_to_reference_video(image, ratio=None):
+    sigma = torch.ones((image.shape[0],)).to(image.device, image.dtype) * ratio 
+    image_noise = torch.randn_like(image) * sigma[:, None, None, None]
+    image_noise = torch.where(image==-1, torch.zeros_like(image), image_noise)
+    image = image + image_noise
+    return image
+
+def optimized_scale(positive_flat, negative_flat):
+
+    # Calculate dot production
+    dot_product = torch.sum(positive_flat * negative_flat, dim=1, keepdim=True)
+
+    # Squared norm of uncondition
+    squared_norm = torch.sum(negative_flat ** 2, dim=1, keepdim=True) + 1e-8
+
+    # st_star = v_cond^T * v_uncond / ||v_uncond||^2
+    st_star = dot_product / squared_norm
+    
+    return st_star

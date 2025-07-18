@@ -15,6 +15,10 @@ try:
 except:
     BlockMask = create_block_mask = flex_attention = None
     pass
+try:
+    from ..radial_attention.attn_mask import RadialSpargeSageAttn, RadialSpargeSageAttnDense
+except:
+    pass
 
 from .attention import attention
 import numpy as np
@@ -24,6 +28,7 @@ from tqdm import tqdm
 import gc
 import comfy.model_management as mm
 from ...utils import log, get_module_memory_mb
+from ...cache_methods.cache_methods import TeaCacheState, MagCacheState, EasyCacheState, relative_l1_distance
 
 from ...multitalk.multitalk import get_attn_map_with_target
 
@@ -259,6 +264,10 @@ class WanSelfAttention(nn.Module):
         self.eps = eps
         self.attention_mode = attention_mode
 
+        #radial attention
+        self.mask_map = None
+        self.decay_factor = 0.2
+
         # layers
         self.q = nn.Linear(in_features, out_features)
         self.k = nn.Linear(in_features, out_features)
@@ -318,6 +327,16 @@ class WanSelfAttention(nn.Module):
         # output
         x = x.flatten(2)
         x = self.o(x)
+
+        return x
+
+    def forward_radial(self, q, k, v, dense_step=False):
+        if dense_step:
+            x = RadialSpargeSageAttnDense(q, k, v, self.mask_map)
+        else:
+            x = RadialSpargeSageAttn(q, k, v, self.mask_map, decay_factor=self.decay_factor)
+
+        x = self.o(x.flatten(2))
 
         return x
     
@@ -567,7 +586,7 @@ class WanAttentionBlock(nn.Module):
                  cross_attn_norm=False,
                  eps=1e-6,
                  attention_mode='sdpa',
-                 rope_func="comfy"
+                 rope_func="comfy",
                  ):
         super().__init__()
         self.dim = out_features
@@ -578,6 +597,10 @@ class WanAttentionBlock(nn.Module):
         self.eps = eps
         self.attention_mode = attention_mode
         self.rope_func = rope_func
+        #radial attn
+        self.dense_timesteps = 10
+        self.dense_block = False
+        self.dense_attention_mode = "sageattn"
 
         # layers
         self.norm1 = WanLayerNorm(out_features, eps)
@@ -714,6 +737,14 @@ class WanAttentionBlock(nn.Module):
             )
         elif ref_target_masks is not None:
             y, x_ref_attn_map = self.self_attn.forward_multitalk(q, k, v, seq_lens, grid_sizes, ref_target_masks, idx_block=idx_block, current_timestep=current_timestep)
+        elif self.attention_mode == "radial_sage_attention":
+            if self.dense_block or self.dense_timesteps is not None and current_step < self.dense_timesteps:
+                if self.dense_attention_mode == "sparse_sage_attn":
+                    y = self.self_attn.forward_radial(q, k, v, dense_step=True)
+                else:
+                    y = self.self_attn.forward(q, k, v, seq_lens, block_mask=block_mask)
+            else:
+                y = self.self_attn.forward_radial(q, k, v, dense_step=False)
         else:
             y = self.self_attn.forward(q, k, v, seq_lens, block_mask=block_mask, idx_block=idx_block, current_timestep=current_timestep)
 
@@ -1850,110 +1881,3 @@ class WanModel(ModelMixin, ConfigMixin):
             u = u.reshape(c, *[i * j for i, j in zip(v, self.patch_size)])
             out.append(u)
         return out
-
-class TeaCacheState:
-    def __init__(self, cache_device='cpu'):
-        self.cache_device = cache_device
-        self.states = {}
-        self._next_pred_id = 0
-    
-    def new_prediction(self, cache_device='cpu'):
-        """Create new prediction state and return its ID"""
-        self.cache_device = cache_device
-        pred_id = self._next_pred_id
-        self._next_pred_id += 1
-        self.states[pred_id] = {
-            'previous_residual': None,
-            'accumulated_rel_l1_distance': 0,
-            'previous_modulated_input': None,
-            'skipped_steps': [],
-        }
-        return pred_id
-    
-    def update(self, pred_id, **kwargs):
-        """Update state for specific prediction"""
-        if pred_id not in self.states:
-            return None
-        for key, value in kwargs.items():
-            self.states[pred_id][key] = value
-    
-    def get(self, pred_id):
-        return self.states.get(pred_id, {})
-    
-    def clear_all(self):
-        self.states = {}
-        self._next_pred_id = 0
-
-class MagCacheState:
-    def __init__(self, cache_device='cpu'):
-        self.cache_device = cache_device
-        self.states = {}
-        self._next_pred_id = 0
-    
-    def new_prediction(self, cache_device='cpu'):
-        """Create new prediction state and return its ID"""
-        self.cache_device = cache_device
-        pred_id = self._next_pred_id
-        self._next_pred_id += 1
-        self.states[pred_id] = {
-            'residual_cache': None,
-            'accumulated_ratio': 1.0,
-            'accumulated_steps': 0,
-            'accumulated_err': 0,
-            'skipped_steps': [],
-        }
-        return pred_id
-    
-    def update(self, pred_id, **kwargs):
-        """Update state for specific prediction"""
-        if pred_id not in self.states:
-            return None
-        for key, value in kwargs.items():
-            self.states[pred_id][key] = value
-    
-    def get(self, pred_id):
-        return self.states.get(pred_id, {})
-    
-    def clear_all(self):
-        self.states = {}
-        self._next_pred_id = 0
-
-class EasyCacheState:
-    def __init__(self, cache_device='cpu'):
-        self.cache_device = cache_device
-        self.states = {}
-        self._next_pred_id = 0
-
-    def new_prediction(self, cache_device='cpu'):
-        """Create a new prediction state and return its ID."""
-        self.cache_device = cache_device
-        pred_id = self._next_pred_id
-        self._next_pred_id += 1
-        self.states[pred_id] = {
-            'previous_raw_input': None,
-            'previous_raw_output': None,
-            'cache': None,
-            'accumulated_error': 0.0,
-            'skipped_steps': [],
-        }
-        return pred_id
-
-    def update(self, pred_id, **kwargs):
-        """Update state for a specific prediction."""
-        if pred_id not in self.states:
-            return None
-        for key, value in kwargs.items():
-            self.states[pred_id][key] = value
-
-    def get(self, pred_id):
-        return self.states.get(pred_id, {})
-
-    def clear_all(self):
-        self.states = {}
-        self._next_pred_id = 0
-
-def relative_l1_distance(last_tensor, current_tensor):
-    l1_distance = torch.abs(last_tensor.to(current_tensor.device) - current_tensor).mean()
-    norm = torch.abs(last_tensor).mean()
-    relative_l1_distance = l1_distance / norm
-    return relative_l1_distance.to(torch.float32).to(current_tensor.device)
